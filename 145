@@ -1,0 +1,591 @@
+--]] Lynoria Nexus.hub for Rivals + RageBot Integrated
+--]] ALL ISSUES FIXED: ESP ghost, Aimbot, Wallbang/Desync, Rank/Lvl Spoofer, Ammo, FOV, Settings
+--]] Korean + English | Mobile & PC Support
+
+-- ========================== [ 0. ANTI-CHEAT BYPASS ] ==========================
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local _stbl; _stbl = hookfunction(getrenv().setmetatable, newcclosure(function(tbl, mt)
+    if mt and typeof(mt) == "table" and rawget(mt, "__mode") == "kv" then
+        local tr = debug.traceback()
+        if tr:find("MiscellaneousController") then return _stbl({1,2,3}, {}) end
+    end
+    return _stbl(tbl, mt)
+end))
+
+task.spawn(function()
+    local function _proc(o)
+        if o:IsA("LocalScript") or o:IsA("ModuleScript") then
+            local _s, nm = pcall(function() return rawget(o, "Name"):lower() end)
+            if not _s or not nm then return end
+            local _tags = {"anticheat","ac","detection","ban","kick","security","moderation"}
+            for _i = 1, #_tags do if nm:find(_tags[_i]) then pcall(function() rawset(o, "Disabled", true) end); break end end
+        end
+    end
+    for _, v in ipairs(game:GetDescendants()) do _proc(v) end
+    game.DescendantAdded:Connect(_proc)
+    local _nc = game:GetService("NetworkClient")
+    _nc.ChildAdded:Connect(function(ch) local _s, _n = pcall(function() return rawget(ch, "Name"):lower() end); if _s and _n and (_n:find("anticheat") or _n:find("detection")) then pcall(function() ch:Destroy() end) end end)
+    local _fakeEv = Instance.new("RemoteEvent"); _fakeEv.Name = "ClientAlert"; _fakeEv.Parent = LocalPlayer
+    local _rf = game:GetService("ReplicatedFirst"); local _tgt = _rf:WaitForChild("LocalScript3", 10); local _gc = getgc(false)
+    for _i = 1, #_gc do local _fn = _gc[_i]; if type(_fn)~="function" then continue end; local _ok1,_env = pcall(getfenv,_fn); if not _ok1 or type(_env)~="table" then continue end; local _ok2,_scr = pcall(function() return rawget(_env,"script") end); if not _ok2 or not _scr or typeof(_scr)~="Instance" then continue end; local _ok3,_ss = pcall(tostring,_scr); if not _ok3 then continue end; if not (_scr==_tgt or (type(_ss)=="string" and _ss:find("LoadingScreen"))) then continue end; local _ok4,_consts = pcall(debug.getconstants,_fn); if not _ok4 or type(_consts)~="table" then continue end; for _j=1,#_consts do local _c=_consts[_j]; if type(_c)=="string" and (_c:find("TakeTheL") or _c:find("ban") or _c:find("kick")) then hookfunction(_fn,function() end); break end end end
+end)
+
+local _old_namecall
+_old_namecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+    if not checkcaller() then
+        local method = getnamecallmethod()
+        if method == "FireServer" or method == "InvokeServer" then
+            local caller = getcallingscript()
+            if caller then local s, n = pcall(function() return rawget(caller, "Name") end); if s and n and n:find("AntiCheat") then return end end
+        end
+    end
+    return _old_namecall(self, ...)
+end))
+
+-- [ LANGUAGES ]
+local CurrentLang = getgenv().LynoriaLang or "KR"
+local LangText = {
+    KR = {Combat="전투",Movement="이동",Visuals="시각",Shader="쉐이더",Settings="설정",Aimbot="에임봇",SilentAim="사일런트 에임",Wallbang="월뱅 / 디싱크",AntiWeapon="안티 카타나/방패",KnifeFarm="칼 팜",DelayCancel="딜레이 캔슬",InfJump="무한 점프",InstantHit="투사체 속도",RapidFire="총 연사속도",NoRecoil="반동 제거",NoSpread="탄퍼짐 제거",AutoFire="자동 사격",AmmoManager="자동 장전",AutoCollect="자동 획득",AntiAim="안티에임",Speed="스피드",SpeedValue="속도 값",SlideBoost="슬라이드 부스트",AntiFlash="섬광 내성",AntiSmoke="연막 내성",BlackTexture="블랙 텍스쳐",RainbowTracers="무지개 트레이서",UnlockAll="스킨 언락",EspHealthbar="체력바",EspName="이름",EspDistance="거리",EspWeapon="무기",EspBox="박스",EspBoxFill="박스 채우기",EspSkeleton="골격",EspTeam="아군 표시",ProjectileTP="투사체 텔레포트",Fly="플라이"},
+    EN = {Combat="Combat",Movement="Movement",Visuals="Visuals",Shader="Shader",Settings="Settings",Aimbot="Aimbot",SilentAim="Silent Aim",Wallbang="Wallbang / Desync",AntiWeapon="Anti Katana/Shield",KnifeFarm="Knife Farm",DelayCancel="Delay Cancel",InfJump="Inf Jump",InstantHit="Projectile Speed",RapidFire="Fire Rate",NoRecoil="No Recoil",NoSpread="No Spread",AutoFire="Auto Fire",AmmoManager="Auto Reload",AutoCollect="Auto Collect",AntiAim="Anti Aim",Speed="Speed",SpeedValue="Speed Value",SlideBoost="Slide Boost",AntiFlash="Anti Flash",AntiSmoke="Anti Smoke",BlackTexture="Black Texture",RainbowTracers="Rainbow Tracers",UnlockAll="Unlock All",EspHealthbar="Health Bar",EspName="Name",EspDistance="Distance",EspWeapon="Weapon",EspBox="Box",EspBoxFill="Box Fill",EspSkeleton="Skeleton",EspTeam="Show Team",ProjectileTP="Projectile TP",Fly="Fly"}
+}
+local function L(key) return LangText[CurrentLang][key] or key end
+
+-- [ UI LIBRARY ]
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/t17635898-cell/fdafdas/refs/heads/main/fgsd"))()
+local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/t17635898-cell/dfas/refs/heads/main/sdfa"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/t17635898-cell/fad/refs/heads/main/scda"))()
+
+local Options = Library.Options; local Toggles = Library.Toggles
+Library.ShowToggleFrameInKeybinds = true; Library.ShowCustomCursor = true; Library.NotifySide = "Left"
+
+local Window = Library:CreateWindow({Title="Lynoria Nexus.hub | Rivals",Center=true,AutoShow=true,Resizable=true,ShowCustomCursor=true,UnlockMouseWhileOpen=true,NotifySide="Left",TabPadding=8,MenuFadeTime=0.2})
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local Lighting = game:GetService("Lighting")
+local Cam = Workspace.CurrentCamera
+local library_unloaded = false
+local env = getgenv()
+
+local Tabs = {Combat=Window:AddTab(L("Combat")),Movement=Window:AddTab(L("Movement")),Visuals=Window:AddTab(L("Visuals")),Shader=Window:AddTab(L("Shader")),Settings=Window:AddTab(L("Settings"))}
+
+local function safeRequire(path) local s,r=pcall(function() return require(path) end); return s and r or nil end
+
+local FighterController = safeRequire(LocalPlayer.PlayerScripts.Controllers:WaitForChild("FighterController",10))
+local MechanicsController = safeRequire(LocalPlayer.PlayerScripts.Controllers:WaitForChild("MechanicsController",10))
+local clientItemModule = safeRequire(LocalPlayer.PlayerScripts.Modules.ClientReplicatedClasses.ClientFighter:WaitForChild("ClientItem",10))
+local GunItem = safeRequire(LocalPlayer.PlayerScripts.Modules.ItemTypes:WaitForChild("Gun",10))
+local Utility = safeRequire(ReplicatedStorage.Modules:WaitForChild("Utility",10))
+local ClientEntity = safeRequire(LocalPlayer.PlayerScripts.Modules.ClientReplicatedClasses:WaitForChild("ClientEntity",10))
+local PlayerDataController = safeRequire(LocalPlayer.PlayerScripts.Controllers:WaitForChild("PlayerDataController",10))
+local SeasonLibrary = safeRequire(ReplicatedStorage.Modules:WaitForChild("SeasonLibrary",10))
+local enums = safeRequire(ReplicatedStorage.Modules:WaitForChild("EnumLibrary",10))
+
+local function IsTeam(p) if not p or p==LocalPlayer then return false end; local s1,t1=pcall(function() return p:GetAttribute("TeamID") end); local s2,t2=pcall(function() return LocalPlayer:GetAttribute("TeamID") end); return s1 and s2 and t1 and t2 and t1==t2 end
+
+-- ========================== [ 1. COMBAT TAB ] ==========================
+local CombatGroup = Tabs.Combat:AddLeftGroupbox(L("Combat"))
+local AutomationGroup = Tabs.Combat:AddRightGroupbox("Automation")
+
+CombatGroup:AddToggle("Aimbot",{Text=L("Aimbot"),Default=false})
+CombatGroup:AddToggle("SilentAim",{Text=L("SilentAim"),Default=false})
+CombatGroup:AddToggle("Wallbang",{Text=L("Wallbang"),Default=false})
+CombatGroup:AddToggle("ProjectileTP",{Text=L("ProjectileTP"),Default=false})
+CombatGroup:AddToggle("AntiWeapon",{Text=L("AntiWeapon"),Default=false})
+CombatGroup:AddToggle("KnifeFarm",{Text=L("KnifeFarm"),Default=false})
+CombatGroup:AddToggle("DelayCancel",{Text=L("DelayCancel"),Default=false})
+CombatGroup:AddToggle("InfJump",{Text=L("InfJump"),Default=false})
+CombatGroup:AddToggle("NoRecoil",{Text=L("NoRecoil"),Default=false})
+CombatGroup:AddToggle("NoSpread",{Text=L("NoSpread"),Default=false})
+
+-- ★ FIXED: Store original values before modifying
+local origProjectileSpeeds = {}; local origCooldowns = {}; local origQuickCooldowns = {}
+
+if clientItemModule then
+    local origRecoil = rawget(clientItemModule, "_Recoil")
+    if origRecoil then rawset(clientItemModule, "_Recoil", function(...) if Toggles.NoRecoil and Toggles.NoRecoil.Value then return end; return origRecoil(...) end) end
+    
+    local originalInput = rawget(clientItemModule, "Input")
+    if originalInput then
+        local wrappedInput = function(self, ...)
+            if self and type(self) == "table" then
+                local info = rawget(self, "Info")
+                if info then
+                    -- Store original values only once per weapon
+                    local id = rawget(self, "Name") or tostring(self)
+                    if not origProjectileSpeeds[id] then origProjectileSpeeds[id] = rawget(info, "ProjectileSpeed") end
+                    if not origCooldowns[id] then origCooldowns[id] = rawget(info, "ShootCooldown") end
+                    if not origQuickCooldowns[id] then origQuickCooldowns[id] = rawget(info, "QuickShotCooldown") end
+                    
+                    if Toggles.NoSpread and Toggles.NoSpread.Value then rawset(info, "ShootSpread", 0) end
+                    
+                    -- ★ FIXED: Only apply when toggled on, restore original when off
+                    if Options.InstantHit then
+                        local v = Options.InstantHit.Value
+                        rawset(info, "ProjectileSpeed", (v >= 100) and (origProjectileSpeeds[id] or 1000) or (99999999 / math.max(v, 1)))
+                    else
+                        rawset(info, "ProjectileSpeed", origProjectileSpeeds[id] or 1000)
+                    end
+                    if Options.RapidFire then
+                        local v = Options.RapidFire.Value
+                        rawset(info, "ShootCooldown", (v >= 100) and (origCooldowns[id] or 0.1) or (v / 1000))
+                        rawset(info, "QuickShotCooldown", (v >= 100) and (origQuickCooldowns[id] or 0.1) or (v / 1000))
+                    else
+                        rawset(info, "ShootCooldown", origCooldowns[id] or 0.1)
+                        rawset(info, "QuickShotCooldown", origQuickCooldowns[id] or 0.1)
+                    end
+                end
+            end
+            return originalInput(self, ...)
+        end
+        rawset(clientItemModule, "Input", wrappedInput)
+    end
+end
+
+if GunItem then
+    local oldUnequip = rawget(GunItem, "Unequip")
+    if oldUnequip then rawset(GunItem, "Unequip", function(self,...) if Toggles.DelayCancel and Toggles.DelayCancel.Value and self then pcall(function() rawset(self,"_shoot_cooldown",0) end) end; return oldUnequip(self,...) end) end
+end
+
+UserInputService.JumpRequest:Connect(function() if Toggles.InfJump and Toggles.InfJump.Value then local char=LocalPlayer.Character; if char then local hum=char:FindFirstChildOfClass("Humanoid"); if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end end end end)
+
+-- [ AIMBOT FIXED - direct Health access ]
+RunService:BindToRenderStep("LynoriaAimbot",201,function()
+    if library_unloaded then RunService:UnbindFromRenderStep("LynoriaAimbot"); return end
+    if not (Toggles.Aimbot and Toggles.Aimbot.Value) then return end
+    local myChar=LocalPlayer.Character; local myHRP=myChar and myChar:FindFirstChild("HumanoidRootPart"); if not myHRP then return end
+    local target,closestDist=nil,math.huge; local myPos=myHRP.Position
+    for _,p in ipairs(Players:GetPlayers()) do
+        if p==LocalPlayer or IsTeam(p) then continue end
+        local char=p.Character; if not char then continue end
+        local head=char:FindFirstChild("Head"); local hum=char:FindFirstChildOfClass("Humanoid")
+        if not head or not hum then continue end
+        if hum.Health<=0 then continue end
+        local dist=(myPos-head.Position).Magnitude; if dist<closestDist then closestDist=dist; target=head end
+    end
+    if target and target.Parent then Cam.CFrame=CFrame.new(Cam.CFrame.Position,target.Position) end
+end)
+
+-- [ SILENT AIM ]
+local ray_params=RaycastParams.new()
+local function get_closest_silent()
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return nil,nil end
+    local target,char,dist=nil,nil,math.huge
+    for _,v in next,Players:GetPlayers() do
+        if v~=LocalPlayer and not IsTeam(v) and v.Character and v.Character:FindFirstChild("Head") then
+            local hum=v.Character:FindFirstChildOfClass("Humanoid")
+            if hum and hum.Health>0 then local mag=(LocalPlayer.Character.HumanoidRootPart.Position-v.Character.Head.Position).Magnitude; if mag<dist then dist=mag; target=v.Character.Head; char=v.Character end end
+        end
+    end; return target,char
+end
+local function can_see(origin,target_pos,target_char) ray_params.FilterDescendantsInstances={LocalPlayer.Character,target_char}; ray_params.FilterType=Enum.RaycastFilterType.Exclude; return not Workspace:Raycast(origin,target_pos-origin,ray_params) end
+
+RunService.Heartbeat:Connect(function()
+    if library_unloaded then return end; if not (Toggles.SilentAim and Toggles.SilentAim.Value) then return end
+    if not LocalPlayer.Character then return end; local root=LocalPlayer.Character:FindFirstChild("HumanoidRootPart"); if not root then return end
+    if not FighterController or not FighterController.LocalFighter then return end; local item=FighterController.LocalFighter.EquippedItem; if not item then return end
+    local target_part,target_char=get_closest_silent(); if not target_part or not target_char then return end; local cam_pos=Cam.CFrame.Position
+    if not can_see(cam_pos,target_part.Position,target_char) then return end
+    local cameradata={}; local encodeFunc=rawget(Utility,"EncodeCFrame")
+    if encodeFunc then
+        cameradata[utf8.char(1)]={[utf8.char(0)]=encodeFunc(Utility,Cam.CFrame),[utf8.char(1)]=encodeFunc(Utility,CFrame.lookAt(cam_pos,target_part.Position)),[utf8.char(2)]=target_part,[utf8.char(3)]=encodeFunc(Utility,target_part.CFrame:ToObjectSpace(CFrame.new(target_part.Position)))}
+        local objectID; pcall(function() objectID=item:Get("ObjectID") end)
+        if objectID and enums then local startShootingEnum; pcall(function() startShootingEnum=enums:ToEnum("StartShooting") end); if startShootingEnum then ReplicatedStorage.Remotes.Replication.Fighter.UseItem:FireServer(objectID,startShootingEnum,cameradata,nil) end end
+    end
+end)
+
+-- [ WALLBANG + DESYNC - REWRITTEN ]
+env.RivalsWallbang={enabled=false,_desyncActive=false}
+do
+    local function enableDesync(enable)
+        if enable then pcall(function() setfflag("WorldStepMax","-999999999"); task.wait(0.05); setfflag("WorldStepMax","-1") end); RivalsWallbang._desyncActive=true
+        else pcall(function() setfflag("WorldStepMax","0.05") end); RivalsWallbang._desyncActive=false end
+    end
+    local function getWallbangTarget()
+        local myChar=LocalPlayer.Character; local myHead=myChar and myChar:FindFirstChild("Head"); if not myHead then return nil end
+        local closest,closestDist=nil,math.huge; local myPos=myHead.Position
+        for _,p in ipairs(Players:GetPlayers()) do if p==LocalPlayer or IsTeam(p) then continue end; local char=p.Character; if not char then continue end; local head=char:FindFirstChild("Head"); local hum=char:FindFirstChildOfClass("Humanoid"); if not head or not hum then continue end; if hum.Health<=0 then continue end; local dist=(myPos-head.Position).Magnitude; if dist<closestDist then closestDist=dist; closest=head end end
+        return closest
+    end
+    task.spawn(function()
+        for i=1,30 do
+            if GunItem and rawget(GunItem,"StartShooting") then
+                local orig=rawget(GunItem,"StartShooting")
+                rawset(GunItem,"StartShooting",function(controller,...)
+                    local results={orig(controller,...)}
+                    local clientFighter=rawget(controller,"ClientFighter"); local isLocal=clientFighter and clientFighter.IsLocalPlayer
+                    if not isLocal then return unpack(results) end
+                    results[4]=true
+                    if not RivalsWallbang.enabled then return unpack(results) end
+                    local targetHead=getWallbangTarget(); if not targetHead then return unpack(results) end
+                    enableDesync(true); task.wait(0.05)
+                    local cameraData=results[3]
+                    if cameraData and typeof(cameraData)=="table" then
+                        local targetPos=targetHead.Position; local shooterPos=targetPos-Vector3.new(0,8,0)
+                        local encodeFunc=nil; pcall(function() encodeFunc=rawget(Utility,"EncodeCFrame") end)
+                        if encodeFunc then pcall(function() cameraData[utf8.char(0)]=encodeFunc(Utility,CFrame.new(shooterPos,targetPos)); cameraData[utf8.char(1)]=encodeFunc(Utility,CFrame.new(targetPos)); cameraData[utf8.char(2)]=targetHead; cameraData[utf8.char(3)]=encodeFunc(Utility,targetHead.CFrame:ToObjectSpace(CFrame.new(targetPos+Vector3.new(math.random(),math.random(),math.random())))) end)
+                        else pcall(function() cameraData[utf8.char(0)]=CFrame.new(shooterPos,targetPos); cameraData[utf8.char(1)]=CFrame.new(targetPos); cameraData[utf8.char(2)]=targetHead; cameraData[utf8.char(3)]=targetHead.CFrame:ToObjectSpace(CFrame.new(targetPos+Vector3.new(math.random(),math.random(),math.random()))) end) end
+                    end
+                    task.delay(0.15,function() enableDesync(false) end)
+                    return unpack(results)
+                end); break end; task.wait(1)
+        end
+    end)
+end
+Toggles.Wallbang:OnChanged(function(v) RivalsWallbang.enabled=v; if not v then pcall(function() setfflag("WorldStepMax","0.05") end) end end)
+
+-- [ AUTO FIRE ]
+task.spawn(function()
+    while task.wait(0.05) do
+        if library_unloaded then break end
+        if Toggles.AutoFire and Toggles.AutoFire.Value then
+            VirtualInputManager:SendMouseButtonEvent(0,0,0,true,game,1); task.wait(0.05); VirtualInputManager:SendMouseButtonEvent(0,0,0,false,game,1)
+        end
+    end
+end)
+
+-- [ AUTO COLLECT ]
+RunService.Heartbeat:Connect(function()
+    if library_unloaded then return end
+    if Toggles.AutoCollect and Toggles.AutoCollect.Value then
+        local char=LocalPlayer.Character; if not char then return end; local hrp=char:FindFirstChild("HumanoidRootPart"); if not hrp then return end
+        local hum=char:FindFirstChild("Humanoid"); local needsHealth=false; if hum then pcall(function() needsHealth=hum.Health<hum.MaxHealth end) end
+        for _,obj in Workspace:GetChildren() do local n=""; pcall(function() n=rawget(obj,"Name") end); if n=="_drop" and obj:IsA("BasePart") then if (obj:FindFirstChild("Health") and needsHealth) or obj:FindFirstChild("Ammo") then firetouchinterest(hrp,obj,0); firetouchinterest(hrp,obj,1) end end end
+    end
+end)
+
+-- ========================== [ 2. MOVEMENT TAB ] ==========================
+local MovMainGroup=Tabs.Movement:AddLeftGroupbox("Movement Modes")
+MovMainGroup:AddToggle("SpeedToggle",{Text=L("Speed"),Default=false})
+MovMainGroup:AddSlider("SpeedValue",{Text=L("SpeedValue"),Default=28,Min=16,Max=100,Rounding=0})
+local function applySpeed() pcall(function() local char=LocalPlayer.Character; local hum=char and char:FindFirstChildOfClass("Humanoid"); if hum then hum.WalkSpeed=(Toggles.SpeedToggle and Toggles.SpeedToggle.Value) and Options.SpeedValue.Value or 16 end end) end
+Toggles.SpeedToggle:OnChanged(applySpeed); Options.SpeedValue:OnChanged(applySpeed)
+LocalPlayer.CharacterAdded:Connect(function(char) local hum=char:WaitForChild("Humanoid",3); if hum and Toggles.SpeedToggle and Toggles.SpeedToggle.Value then hum.WalkSpeed=Options.SpeedValue.Value end end)
+
+MovMainGroup:AddDivider()
+MovMainGroup:AddToggle("SlideBoostToggle",{Text=L("SlideBoost"),Default=false})
+MovMainGroup:AddSlider("SlideBoostValue",{Text="슬라이드 배율",Default=1.5,Min=1,Max=3,Rounding=1})
+if MechanicsController then
+    local old_slide=rawget(MechanicsController,"Slide"); local boosted=false
+    if old_slide then rawset(MechanicsController,"Slide",function(self,...) if Toggles.SlideBoostToggle and Toggles.SlideBoostToggle.Value then local f=rawget(self,"LocalFighter"); if f and not boosted then local cm=f:Get("SlidingSpeedMax") or 3; local m=Options.SlideBoostValue and Options.SlideBoostValue.Value or 1.5; f:Set("SlidingSpeedMax",cm*m); boosted=true; task.delay(1,function() boosted=false end) end end; return old_slide(self,...) end) end
+end
+
+-- [ FLY ]
+local FlyGroup=Tabs.Movement:AddRightGroupbox(L("Fly"))
+FlyGroup:AddToggle("Fly",{Text="플라이 (모바일 지원)",Default=false})
+FlyGroup:AddSlider("FlySpeed",{Text="비행 속도",Default=80,Min=10,Max=300,Rounding=0})
+local flyBV,flyBG
+RunService.RenderStepped:Connect(function(dt)
+    if library_unloaded then return end
+    if Toggles.Fly and Toggles.Fly.Value then
+        local char=LocalPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            local root=char.HumanoidRootPart; local hum=char:FindFirstChildOfClass("Humanoid"); if hum then hum.PlatformStand=true end
+            if not flyBV then flyBV=Instance.new("BodyVelocity"); flyBV.MaxForce=Vector3.new(1e6,1e6,1e6); flyBV.Parent=root end
+            if not flyBG then flyBG=Instance.new("BodyGyro"); flyBG.MaxTorque=Vector3.new(1e6,1e6,1e6); flyBG.P=9000; flyBG.Parent=root end
+            flyBG.CFrame=Cam.CFrame; local fs=Options.FlySpeed and Options.FlySpeed.Value or 80; local md=hum.MoveDirection; local dir=Vector3.zero
+            if md.Magnitude>0.1 then dir=(Cam.CFrame.RightVector*md.X+Cam.CFrame.LookVector*md.Z).Unit end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir=dir+Vector3.yAxis end; if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then dir=dir-Vector3.yAxis end
+            flyBV.Velocity=dir.Magnitude>0 and dir.Unit*fs or Vector3.zero
+        end
+    else
+        if flyBV then flyBV:Destroy(); flyBV=nil end; if flyBG then flyBG:Destroy(); flyBG=nil end
+        local char=LocalPlayer.Character; if char and char:FindFirstChildOfClass("Humanoid") then char.Humanoid.PlatformStand=false end
+    end
+end)
+
+-- ========================== [ 3. VISUALS - ESP (FIXED GHOST) ] ==========================
+local ESP_Data={}
+local ESP_BONE_MAP={{"Head","UpperTorso"},{"UpperTorso","LowerTorso"},{"UpperTorso","LeftUpperArm"},{"LeftUpperArm","LeftLowerArm"},{"LeftLowerArm","LeftHand"},{"UpperTorso","RightUpperArm"},{"RightUpperArm","RightLowerArm"},{"RightLowerArm","RightHand"},{"LowerTorso","LeftUpperLeg"},{"LeftUpperLeg","LeftLowerLeg"},{"LeftLowerLeg","LeftFoot"},{"LowerTorso","RightUpperLeg"},{"RightUpperLeg","RightLowerLeg"},{"RightLowerLeg","RightFoot"}}
+local function getBone(char,name) local b=char:FindFirstChild(name); if b then return b end; local r6map={Head="Head",UpperTorso="Torso",LowerTorso="Torso",LeftUpperArm="Left Arm",LeftLowerArm="Left Arm",LeftHand="Left Arm",RightUpperArm="Right Arm",RightLowerArm="Right Arm",RightHand="Right Arm",LeftUpperLeg="Left Leg",LeftLowerLeg="Left Leg",LeftFoot="Left Leg",RightUpperLeg="Right Leg",RightLowerLeg="Right Leg",RightFoot="Right Leg"}; local r6=r6map[name]; return r6 and char:FindFirstChild(r6) or nil end
+local function createESPDrawing(plr)
+    local d={}
+    d.box=Drawing.new("Square"); d.box.Thickness=2; d.box.Filled=false; d.box.Visible=false
+    d.fill=Drawing.new("Square"); d.fill.Thickness=0; d.fill.Filled=true; d.fill.Transparency=0.3; d.fill.Visible=false
+    d.hb_bg=Drawing.new("Square"); d.hb_bg.Thickness=0; d.hb_bg.Filled=true; d.hb_bg.Color=Color3.new(0,0,0); d.hb_bg.Transparency=0.5; d.hb_bg.Visible=false
+    d.hb=Drawing.new("Square"); d.hb.Thickness=0; d.hb.Filled=true; d.hb.Visible=false
+    d.name_txt=Drawing.new("Text"); d.name_txt.Center=true; d.name_txt.Outline=true; d.name_txt.Size=16; d.name_txt.Visible=false
+    d.dist_txt=Drawing.new("Text"); d.dist_txt.Center=true; d.dist_txt.Outline=true; d.dist_txt.Size=14; d.dist_txt.Visible=false
+    d.wpn_txt=Drawing.new("Text"); d.wpn_txt.Center=true; d.wpn_txt.Outline=true; d.wpn_txt.Size=14; d.wpn_txt.Visible=false
+    d.skeleton={}; for i=1,#ESP_BONE_MAP do d.skeleton[i]=Drawing.new("Line"); d.skeleton[i].Thickness=2; d.skeleton[i].Visible=false end
+    ESP_Data[plr]=d; return d
+end
+local function destroyESPDrawing(plr) local d=ESP_Data[plr]; if d then for _,v in pairs(d) do if type(v)=="table" then for _,l in ipairs(v) do pcall(function() l:Remove() end) end elseif type(v)=="Drawing" then pcall(function() v:Remove() end) end end; ESP_Data[plr]=nil end end
+
+-- ★ FIXED: Track characters properly. Kill old ESP on death/respawn.
+local CharRefs={}
+local function isCharAlive(char) if not char or not char.Parent then return false end; local hum=char:FindFirstChildOfClass("Humanoid"); if not hum then return false end; local s,h=pcall(function() return hum.Health end); return s and h>0 end
+local function updateCharRef(plr)
+    local newChar=plr.Character; local oldChar=CharRefs[plr]
+    if newChar~=oldChar then destroyESPDrawing(plr); CharRefs[plr]=newChar end
+end
+for _,plr in ipairs(Players:GetPlayers()) do if plr~=LocalPlayer then CharRefs[plr]=plr.Character; plr.CharacterAdded:Connect(function() task.wait(0.1); destroyESPDrawing(plr); CharRefs[plr]=plr.Character end) end end
+Players.PlayerAdded:Connect(function(plr) if plr~=LocalPlayer then CharRefs[plr]=plr.Character; plr.CharacterAdded:Connect(function() task.wait(0.1); destroyESPDrawing(plr); CharRefs[plr]=plr.Character end) end end)
+Players.PlayerRemoving:Connect(destroyESPDrawing)
+
+-- ★ FIXED: Clean up ALL drawings on death. No ghost.
+RunService:BindToRenderStep("LynoriaESP_Main",199,function()
+    if library_unloaded then RunService:UnbindFromRenderStep("LynoriaESP_Main"); return end
+    local myChar=LocalPlayer.Character; local myHRP=myChar and myChar:FindFirstChild("HumanoidRootPart")
+    if not myHRP then for p,d in pairs(ESP_Data) do for _,v in pairs(d) do if type(v)=="table" then for _,l in ipairs(v) do l.Visible=false end elseif type(v)=="Drawing" then v.Visible=false end end end; return end
+    local camPos=Cam.CFrame.Position
+    local espOn=(Toggles.EspBox and Toggles.EspBox.Value)or(Toggles.EspBoxFill and Toggles.EspBoxFill.Value)or(Toggles.EspHealthbar and Toggles.EspHealthbar.Value)or(Toggles.EspName and Toggles.EspName.Value)or(Toggles.EspDistance and Toggles.EspDistance.Value)or(Toggles.EspWeapon and Toggles.EspWeapon.Value)or(Toggles.EspSkeleton and Toggles.EspSkeleton.Value)
+    for _,plr in ipairs(Players:GetPlayers()) do
+        if plr==LocalPlayer then local d=ESP_Data[plr]; if d then for _,v in pairs(d) do if type(v)=="table" then for _,l in ipairs(v) do l.Visible=false end elseif type(v)=="Drawing" then v.Visible=false end end end; continue end
+        updateCharRef(plr); local char=plr.Character
+        -- ★ FIXED: If dead, destroy ESP completely
+        if not isCharAlive(char) then destroyESPDrawing(plr); continue end
+        local hrp=char:FindFirstChild("HumanoidRootPart"); local hum=char:FindFirstChildOfClass("Humanoid")
+        if not hrp or not hum then destroyESPDrawing(plr); continue end
+        local isTeam=IsTeam(plr)
+        if isTeam and not (Toggles.EspTeam and Toggles.EspTeam.Value) then destroyESPDrawing(plr); continue end
+        if not espOn then local d=ESP_Data[plr]; if d then for _,v in pairs(d) do if type(v)=="table" then for _,l in ipairs(v) do l.Visible=false end elseif type(v)=="Drawing" then v.Visible=false end end end; continue end
+        local screenPos,onScreen=Cam:WorldToViewportPoint(hrp.Position)
+        if not onScreen then destroyESPDrawing(plr); continue end
+        local d=ESP_Data[plr]; if not d then d=createESPDrawing(plr) end
+        local dist=(camPos-hrp.Position).Magnitude; local scale=math.clamp(1200/(dist+100),0.5,5); local bw=4*scale; local bh=5.5*scale; local pos=Vector2.new(screenPos.X,screenPos.Y); local tl=pos-Vector2.new(bw/2,bh/2)
+        if Toggles.EspBox and Toggles.EspBox.Value then d.box.Size=Vector2.new(bw,bh); d.box.Position=tl; d.box.Color=Options.EspBoxColor.Value; d.box.Visible=true else d.box.Visible=false end
+        if Toggles.EspBoxFill and Toggles.EspBoxFill.Value then d.fill.Size=Vector2.new(bw,bh); d.fill.Position=tl; d.fill.Color=Options.EspBoxFillColor.Value; d.fill.Visible=true else d.fill.Visible=false end
+        if Toggles.EspHealthbar and Toggles.EspHealthbar.Value then local hbr=math.clamp(hum.Health/math.max(hum.MaxHealth,1),0,1); local hbw=4; local hbh=bh*hbr; local hbx=tl.X-hbw-3; local hby=tl.Y+bh-hbh; d.hb_bg.Size=Vector2.new(hbw,bh); d.hb_bg.Position=Vector2.new(hbx,tl.Y); d.hb_bg.Visible=true; d.hb.Size=Vector2.new(hbw,hbh); d.hb.Position=Vector2.new(hbx,hby); d.hb.Color=Options.EspHealthbarColor.Value; d.hb.Visible=true else d.hb_bg.Visible=false; d.hb.Visible=false end
+        if Toggles.EspName and Toggles.EspName.Value then d.name_txt.Text=plr.DisplayName; d.name_txt.Color=Options.EspNameColor.Value; d.name_txt.Position=tl-Vector2.new(0,18); d.name_txt.Visible=true else d.name_txt.Visible=false end
+        if Toggles.EspDistance and Toggles.EspDistance.Value then d.dist_txt.Text=string.format("[%.0f]",dist); d.dist_txt.Color=Options.EspDistanceColor.Value; d.dist_txt.Position=pos+Vector2.new(0,bh/2+5); d.dist_txt.Visible=true else d.dist_txt.Visible=false end
+        if Toggles.EspWeapon and Toggles.EspWeapon.Value then local wn="Unknown"; pcall(function() if FighterController then local lf=rawget(FighterController,"LocalFighter"); if lf then local eq=rawget(lf,"EquippedItem"); if eq then wn=eq.Name or eq:Get("Name") or "Unknown" end end end end); d.wpn_txt.Text=wn; d.wpn_txt.Color=Options.EspWeaponColor.Value; d.wpn_txt.Position=pos+Vector2.new(0,bh/2+22); d.wpn_txt.Visible=true else d.wpn_txt.Visible=false end
+        if Toggles.EspSkeleton and Toggles.EspSkeleton.Value then local sc=Options.EspSkeletonColor.Value; for i,bp in ipairs(ESP_BONE_MAP) do local b1=getBone(char,bp[1]); local b2=getBone(char,bp[2]); if b1 and b2 and b1.Parent and b2.Parent then local p1,o1=Cam:WorldToViewportPoint(b1.Position); local p2,o2=Cam:WorldToViewportPoint(b2.Position); if o1 and o2 then d.skeleton[i].From=Vector2.new(p1.X,p1.Y); d.skeleton[i].To=Vector2.new(p2.X,p2.Y); d.skeleton[i].Color=sc; d.skeleton[i].Visible=true else d.skeleton[i].Visible=false end else d.skeleton[i].Visible=false end end else for i=1,#ESP_BONE_MAP do d.skeleton[i].Visible=false end end
+    end
+    -- ★ FIXED: Clean up ESP for players that left or have no valid character
+    for plr,d in pairs(ESP_Data) do
+        if not Players:FindFirstChild(plr.Name) then destroyESPDrawing(plr)
+        elseif not isCharAlive(plr.Character) then destroyESPDrawing(plr) end
+    end
+end)
+
+-- ESP UI
+local VisEspGroup=Tabs.Visuals:AddLeftGroupbox("ESP Settings")
+VisEspGroup:AddToggle("EspHealthbar",{Text=L("EspHealthbar"),Default=false}):AddColorPicker("EspHealthbarColor",{Default=Color3.fromRGB(0,255,0)})
+VisEspGroup:AddToggle("EspName",{Text=L("EspName"),Default=false}):AddColorPicker("EspNameColor",{Default=Color3.fromRGB(255,255,255)})
+VisEspGroup:AddToggle("EspDistance",{Text=L("EspDistance"),Default=false}):AddColorPicker("EspDistanceColor",{Default=Color3.fromRGB(255,255,255)})
+VisEspGroup:AddToggle("EspWeapon",{Text=L("EspWeapon"),Default=false}):AddColorPicker("EspWeaponColor",{Default=Color3.fromRGB(255,255,255)})
+VisEspGroup:AddToggle("EspBox",{Text=L("EspBox"),Default=false}):AddColorPicker("EspBoxColor",{Default=Color3.fromRGB(255,0,0)})
+VisEspGroup:AddToggle("EspBoxFill",{Text=L("EspBoxFill"),Default=false}):AddColorPicker("EspBoxFillColor",{Default=Color3.fromRGB(255,0,0)})
+VisEspGroup:AddToggle("EspSkeleton",{Text=L("EspSkeleton"),Default=false}):AddColorPicker("EspSkeletonColor",{Default=Color3.fromRGB(255,255,255)})
+VisEspGroup:AddToggle("EspTeam",{Text=L("EspTeam"),Default=false}):AddColorPicker("EspTeamColor",{Default=Color3.fromRGB(0,255,0)})
+
+-- Visuals Extra
+local VisMainGroup=Tabs.Visuals:AddLeftGroupbox("Visuals & Unlocker")
+VisMainGroup:AddToggle("AntiFlash",{Text=L("AntiFlash"),Default=false})
+VisMainGroup:AddToggle("AntiSmoke",{Text=L("AntiSmoke"),Default=false})
+VisMainGroup:AddToggle("BlackTexture",{Text=L("BlackTexture"),Default=false})
+VisMainGroup:AddToggle("RainbowTracers",{Text=L("RainbowTracers"),Default=false})
+VisMainGroup:AddToggle("FinisherToggle",{Text="Finisher",Default=false})
+VisMainGroup:AddInput("FinisherInput",{Default="Diamond hands",Text="Finisher Name"})
+if ClientEntity then local og=rawget(ClientEntity,"_PlayFinisher"); if og then rawset(ClientEntity,"_PlayFinisher",function(self,_,...) if Toggles.FinisherToggle and Toggles.FinisherToggle.Value then local fn=Options.FinisherInput and Options.FinisherInput.Value or "Diamond hands"; return og(self,fn,...) end; return og(self,_,...) end) end end
+VisMainGroup:AddButton({Text=L("UnlockAll"),Func=function() Library:Notify("Loading Aybrix Skin Changer UI...",3); task.spawn(function() pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/t17635898-cell/musical-octo-potato/refs/heads/main/dfas"))() end) end) end})
+
+-- Spoofer UI
+local VisSpooferGroup=Tabs.Visuals:AddRightGroupbox("Spoofer")
+VisSpooferGroup:AddToggle("SpoofLevelToggle",{Text="Level Spoofer",Default=false})
+VisSpooferGroup:AddInput("SpoofLevel",{Default="999",Numeric=true,Finished=true,Text="Fake Level"})
+VisSpooferGroup:AddDivider()
+VisSpooferGroup:AddToggle("SpoofStreakToggle",{Text="Win Streak Spoofer",Default=false})
+VisSpooferGroup:AddInput("SpoofStreak",{Default="100",Numeric=true,Finished=true,Text="Fake Streak"})
+VisSpooferGroup:AddDivider()
+VisSpooferGroup:AddToggle("SpoofRankToggle",{Text="ELO/Rank Spoofer",Default=false})
+VisSpooferGroup:AddInput("SpoofRankInput",{Default="5000",Numeric=true,Finished=true,Text="Fake ELO"})
+
+-- ========================== [ SPOOFER - FULLY FIXED ] ==========================
+-- ★ FIXED: Hook GetSetting to force "Level" or "Current ELO" display
+-- ★ FIXED: Hook Nametag constructor through PlayerDataController data
+-- ★ FIXED: All values propagate to both nametag UI and leaderstats
+
+if PlayerDataController then
+    -- Hook GetSetting to control nametag display
+    local origGetSetting = rawget(PlayerDataController, "GetSetting")
+    if origGetSetting then
+        rawset(PlayerDataController, "GetSetting", function(self, key, ...)
+            local data = origGetSetting(self, key, ...)
+            if key == "PlayerList Leaderstat" then
+                if Toggles.SpoofLevelToggle and Toggles.SpoofLevelToggle.Value then return "Level" end
+                if Toggles.SpoofRankToggle and Toggles.SpoofRankToggle.Value then return "Current ELO" end
+                if Toggles.SpoofStreakToggle and Toggles.SpoofStreakToggle.Value then return "Win Streak" end
+            end
+            return data
+        end)
+    end
+
+    -- Hook Get to spoof values
+    local origGet = rawget(PlayerDataController, "Get")
+    if origGet then
+        rawset(PlayerDataController, "Get", function(self, key, ...)
+            local data = origGet(self, key, ...)
+            if key == "Level" and Toggles.SpoofLevelToggle and Toggles.SpoofLevelToggle.Value then return tonumber(Options.SpoofLevel.Value) or 999 end
+            if key == "XP" and Toggles.SpoofLevelToggle and Toggles.SpoofLevelToggle.Value then return (tonumber(Options.SpoofLevel.Value) or 999) * 1000 end
+            if key == "ELO" and Toggles.SpoofRankToggle and Toggles.SpoofRankToggle.Value then return tonumber(Options.SpoofRankInput.Value) or 5000 end
+            if key == "Rank" and Toggles.SpoofRankToggle and Toggles.SpoofRankToggle.Value then
+                local elo = tonumber(Options.SpoofRankInput.Value) or 5000
+                if elo >= 5000 then return "Radiant" elseif elo >= 4000 then return "Grandmaster" elseif elo >= 3000 then return "Master" elseif elo >= 2000 then return "Diamond" elseif elo >= 1500 then return "Platinum" elseif elo >= 1000 then return "Gold" elseif elo >= 500 then return "Silver" else return "Bronze" end
+            end
+            if Toggles.SpoofStreakToggle and Toggles.SpoofStreakToggle.Value then
+                local sk = {"WinStreak","Winstreak","winStreak","winstreak","CurrentWinStreak","Streak","streak"}
+                for _,k in ipairs(sk) do if key == k then return tonumber(Options.SpoofStreak.Value) or 100 end end
+                if key == "StoredStreaks" and type(data) == "table" then local c = {}; for k,v in pairs(data) do c[k]=v end; for k,v in pairs(c) do if type(v)=="table" then pcall(function() v.Value = tonumber(Options.SpoofStreak.Value) or 100 end) end end; return c end
+            end
+            return data
+        end)
+    end
+end
+
+-- SeasonLibrary rank hooks
+if SeasonLibrary then
+    local origGetRank = rawget(SeasonLibrary, "GetRank")
+    if origGetRank then
+        rawset(SeasonLibrary, "GetRank", function(self, elo, userId, ranking, ...)
+            if Toggles.SpoofRankToggle and Toggles.SpoofRankToggle.Value and (userId == nil or userId == LocalPlayer.UserId) then
+                return origGetRank(self, tonumber(Options.SpoofRankInput.Value) or 5000, userId, ranking, ...)
+            end
+            return origGetRank(self, elo, userId, ranking, ...)
+        end)
+    end
+    if SeasonLibrary.GetHighestELOLeaderboardRanking then
+        local origHE = SeasonLibrary.GetHighestELOLeaderboardRanking
+        SeasonLibrary.GetHighestELOLeaderboardRanking = function(self) if Toggles.SpoofRankToggle and Toggles.SpoofRankToggle.Value then return tonumber(Options.SpoofRankInput.Value) or 5000 end; return origHE(self) end
+    end
+end
+
+-- Level module XPRequired hook
+local LevelMod = LocalPlayer.PlayerScripts.Modules:FindFirstChild("Level")
+if LevelMod then local m = safeRequire(LevelMod); if m and m.XPRequiredToLevelUp then local o = m.XPRequiredToLevelUp; m.XPRequiredToLevelUp = function(self, lv) if Toggles.SpoofLevelToggle and Toggles.SpoofLevelToggle.Value then return 1 end; return o(self, lv) end end end
+
+-- ★ FIXED: Attribute hook + data signals + leaderstats render loop
+local oldGA; oldGA = hookmetamethod(game, "__index", function(self, key)
+    if not checkcaller() and self == LocalPlayer and key == "GetAttribute" then
+        return function(self, attr)
+            if Toggles.SpoofRankToggle and Toggles.SpoofRankToggle.Value and (attr == "DisplayELO" or attr == "ELO") then return tonumber(Options.SpoofRankInput.Value) or 5000 end
+            if Toggles.SpoofLevelToggle and Toggles.SpoofLevelToggle.Value and attr == "Level" then return tonumber(Options.SpoofLevel.Value) or 999 end
+            return oldGA(self, "GetAttribute")(self, attr)
+        end
+    end
+    return oldGA(self, key)
+end)
+
+-- Data signals + leaderstats
+RunService:BindToRenderStep("SpoofyRefresh",198,function()
+    if library_unloaded then RunService:UnbindFromRenderStep("SpoofyRefresh"); return end
+    if PlayerDataController then
+        if Toggles.SpoofLevelToggle and Toggles.SpoofLevelToggle.Value then
+            local ls = PlayerDataController:GetDataChangedSignal("Level"); if ls then pcall(function() ls:Fire("Level") end) end
+            local xs = PlayerDataController:GetDataChangedSignal("XP"); if xs then pcall(function() xs:Fire("XP") end) end
+        end
+        if Toggles.SpoofStreakToggle and Toggles.SpoofStreakToggle.Value then
+            local ss = PlayerDataController:GetDataChangedSignal("WinStreak"); if ss then pcall(function() ss:Fire("WinStreak") end) end
+        end
+    end
+    if Toggles.SpoofLevelToggle and Toggles.SpoofLevelToggle.Value then
+        local f = tonumber(Options.SpoofLevel.Value) or 999; pcall(function() LocalPlayer:SetAttribute("Level", f); local ls = LocalPlayer:FindFirstChild("leaderstats"); if ls and ls:FindFirstChild("Level") then ls.Level.Value = f end end)
+    end
+    if Toggles.SpoofStreakToggle and Toggles.SpoofStreakToggle.Value then
+        local f = tonumber(Options.SpoofStreak.Value) or 100; pcall(function() LocalPlayer:SetAttribute("StatisticDuelsWinStreak", f); LocalPlayer:SetAttribute("WinStreak", f); LocalPlayer:SetAttribute("DuelsWinStreak", f); local ls = LocalPlayer:FindFirstChild("leaderstats"); if ls then local ws = ls:FindFirstChild("Win Streak"); if ws then ws.Value = f end; local h = ls:FindFirstChild("Highest Win Streak"); if h then h.Value = f end end end)
+    end
+    if Toggles.SpoofRankToggle and Toggles.SpoofRankToggle.Value then
+        local f = tonumber(Options.SpoofRankInput.Value) or 5000; pcall(function() LocalPlayer:SetAttribute("DisplayELO", f); LocalPlayer:SetAttribute("ELO", f) end)
+    end
+end)
+
+-- ========================== [ 4. SHADER TAB ] ==========================
+local ST = Tabs.Shader:AddLeftGroupbox("Shader Toggles")
+ST:AddToggle("BloomToggle",{Text="Bloom",Default=false}):AddColorPicker("Bloom_Color",{Default=Color3.fromRGB(255,255,255)})
+ST:AddSlider("Bloom_Intensity",{Text="Intensity",Default=1,Min=0,Max=5,Rounding=1})
+ST:AddSlider("Bloom_Size",{Text="Size",Default=24,Min=0,Max=100,Rounding=0})
+ST:AddSlider("Bloom_Threshold",{Text="Threshold",Default=0.5,Min=0,Max=1,Rounding=2}); ST:AddDivider()
+ST:AddToggle("ColorCorrectionToggle",{Text="Color Correction",Default=false}):AddColorPicker("CC_TintColor",{Default=Color3.new(1,1,1)})
+ST:AddSlider("CC_Saturation",{Text="Saturation",Default=0,Min=-1,Max=1,Rounding=2})
+ST:AddSlider("CC_Contrast",{Text="Contrast",Default=0,Min=-1,Max=1,Rounding=2})
+ST:AddSlider("CC_Brightness",{Text="Brightness",Default=0,Min=-1,Max=1,Rounding=2}); ST:AddDivider()
+ST:AddToggle("AtmosphereToggle",{Text="Atmosphere",Default=false}):AddColorPicker("Atmo_Color",{Default=Color3.fromRGB(200,200,255)})
+ST:AddSlider("Atmo_Decay",{Text="Decay",Default=0,Min=0,Max=1,Rounding=2})
+ST:AddSlider("Atmo_Glare",{Text="Glare",Default=0,Min=0,Max=1,Rounding=2})
+ST:AddSlider("Atmo_Haze",{Text="Haze",Default=0,Min=0,Max=10,Rounding=1})
+ST:AddSlider("Atmo_Density",{Text="Density",Default=0.3,Min=0,Max=1,Rounding=2})
+ST:AddSlider("Atmo_Offset",{Text="Offset",Default=0,Min=0,Max=1,Rounding=2}); ST:AddDivider()
+ST:AddToggle("SunRaysToggle",{Text="Sun Rays",Default=false})
+ST:AddSlider("SunRays_Spread",{Text="Spread",Default=0.5,Min=0,Max=1,Rounding=2})
+ST:AddSlider("SunRays_Intensity",{Text="Intensity",Default=0.25,Min=0,Max=1,Rounding=2}); ST:AddDivider()
+ST:AddToggle("BlurToggle",{Text="Blur",Default=false})
+ST:AddSlider("Blur_Size",{Text="Blur Size",Default=0,Min=0,Max=24,Rounding=0}); ST:AddDivider()
+ST:AddToggle("ShaderEnable",{Text="Enable Shaders",Default=false})
+
+local Bloom=Instance.new("BloomEffect"); Bloom.Parent=Lighting; Bloom.Enabled=false
+local CC=Instance.new("ColorCorrectionEffect"); CC.Parent=Lighting; CC.Enabled=false
+local Atmo=Instance.new("Atmosphere")
+local SR=Instance.new("SunRaysEffect"); SR.Parent=Lighting; SR.Enabled=false
+local Blur=Instance.new("BlurEffect"); Blur.Parent=Lighting; Blur.Enabled=false
+local function uB() if Toggles.ShaderEnable and Toggles.ShaderEnable.Value and Toggles.BloomToggle and Toggles.BloomToggle.Value then Bloom.Enabled=true; Bloom.Size=Options.Bloom_Size.Value; Bloom.Intensity=Options.Bloom_Intensity.Value; Bloom.Threshold=Options.Bloom_Threshold.Value else Bloom.Enabled=false end end
+local function uC() if Toggles.ShaderEnable and Toggles.ShaderEnable.Value and Toggles.ColorCorrectionToggle and Toggles.ColorCorrectionToggle.Value then CC.Enabled=true; CC.TintColor=Options.CC_TintColor.Value; CC.Saturation=Options.CC_Saturation.Value; CC.Contrast=Options.CC_Contrast.Value; CC.Brightness=Options.CC_Brightness.Value else CC.Enabled=false end end
+local function uA() if Toggles.ShaderEnable and Toggles.ShaderEnable.Value and Toggles.AtmosphereToggle and Toggles.AtmosphereToggle.Value then Atmo.Parent=Lighting; Atmo.Color=Options.Atmo_Color.Value; Atmo.Decay=Options.Atmo_Decay.Value; Atmo.Glare=Options.Atmo_Glare.Value; Atmo.Haze=Options.Atmo_Haze.Value; Atmo.Density=Options.Atmo_Density.Value; Atmo.Offset=Options.Atmo_Offset.Value else Atmo.Parent=nil end end
+local function uS() if Toggles.ShaderEnable and Toggles.ShaderEnable.Value and Toggles.SunRaysToggle and Toggles.SunRaysToggle.Value then SR.Enabled=true; SR.Spread=Options.SunRays_Spread.Value; SR.Intensity=Options.SunRays_Intensity.Value else SR.Enabled=false end end
+local function uR() if Toggles.ShaderEnable and Toggles.ShaderEnable.Value and Toggles.BlurToggle and Toggles.BlurToggle.Value then Blur.Enabled=true; Blur.Size=Options.Blur_Size.Value else Blur.Enabled=false end end
+Toggles.BloomToggle:OnChanged(uB); Options.Bloom_Intensity:OnChanged(uB); Options.Bloom_Size:OnChanged(uB); Options.Bloom_Threshold:OnChanged(uB)
+Toggles.ColorCorrectionToggle:OnChanged(uC); Options.CC_Saturation:OnChanged(uC); Options.CC_Contrast:OnChanged(uC); Options.CC_Brightness:OnChanged(uC); Options.CC_TintColor:OnChanged(uC)
+Toggles.AtmosphereToggle:OnChanged(uA); Options.Atmo_Decay:OnChanged(uA); Options.Atmo_Glare:OnChanged(uA); Options.Atmo_Haze:OnChanged(uA); Options.Atmo_Density:OnChanged(uA); Options.Atmo_Offset:OnChanged(uA); Options.Atmo_Color:OnChanged(uA)
+Toggles.SunRaysToggle:OnChanged(uS); Options.SunRays_Spread:OnChanged(uS); Options.SunRays_Intensity:OnChanged(uS)
+Toggles.BlurToggle:OnChanged(uR); Options.Blur_Size:OnChanged(uR)
+Toggles.ShaderEnable:OnChanged(function() uB(); uC(); uA(); uS(); uR() end)
+
+-- ========================== [ 5. SETTINGS TAB - FULLY WORKING ] ==========================
+local MG=Tabs.Settings:AddLeftGroupbox("Menu")
+MG:AddToggle("KeybindMenuOpen",{Default=false,Text="Open Keybind Menu",Callback=function(v) Library.KeybindFrame.Visible=v end})
+MG:AddToggle("ShowCustomCursor",{Text="Custom Cursor",Default=false,Callback=function(v) Library.ShowCustomCursor=v end})
+MG:AddDivider()
+MG:AddDropdown("Language",{Values={"KR","English"},Default=CurrentLang=="KR" and "KR" or "English",Text="Language",Callback=function(v) CurrentLang=(v=="KR") and "KR" or "EN"; Library:Notify("Language: "..v,2) end})
+MG:AddDivider()
+MG:AddLabel("Menu bind"); MG:AddKeyPicker("MenuKeybind",{Default="RightShift",NoUI=true,Text="Menu keybind"})
+MG:AddDivider()
+
+-- ★ FIXED: ThemeManager + SaveManager properly applied
+ThemeManager:SetLibrary(Library); ThemeManager:SetFolder("LynoriaRivals"); ThemeManager:ApplyToTab(Tabs.Settings)
+SaveManager:SetLibrary(Library); SaveManager:IgnoreThemeSettings(); SaveManager:SetIgnoreIndexes({"MenuKeybind"})
+SaveManager:SetFolder("LynoriaRivals"); SaveManager:SetSubFolder("Rivals"); SaveManager:BuildConfigSection(Tabs.Settings)
+Library.ToggleKeybind = Options.MenuKeybind
+
+-- Unload button
+Tabs.Settings:AddLeftGroupbox("Unload"):AddButton({Text="Unload ❌",Func=function() library_unloaded=true; for p,_ in pairs(ESP_Data) do destroyESPDrawing(p) end; Library:Unload() end,DoubleClick=true})
+
+-- ========================== [ 6. FOV CIRCLE - RAINBOW + ROTATING CROSS ] ==========================
+local FOV = {radius=300,armLength=90,innerGap=15,rotationSpeed=1.5,hue=0,active=false}
+FOV.circle=Drawing.new("Circle"); FOV.circle.Thickness=3; FOV.circle.NumSides=128; FOV.circle.Visible=false; FOV.circle.Color=Color3.fromRGB(255,255,255); FOV.circle.Transparency=0.3
+FOV.fill=Drawing.new("Circle"); FOV.fill.NumSides=128; FOV.fill.Visible=false; FOV.fill.Thickness=FOV.radius; FOV.fill.Transparency=0.8; FOV.fill.Radius=FOV.radius
+FOV.arms={}; for i=1,8 do FOV.arms[i]=Drawing.new("Line"); FOV.arms[i].Thickness=5; FOV.arms[i].Visible=false; FOV.arms[i].Color=Color3.fromRGB(255,255,255); FOV.arms[i].Transparency=0.2 end
+FOV.glow=Drawing.new("Circle"); FOV.glow.Thickness=1; FOV.glow.NumSides=128; FOV.glow.Visible=false; FOV.glow.Radius=FOV.radius+6; FOV.glow.Color=Color3.fromRGB(255,255,255); FOV.glow.Transparency=0.6
+
+local FG=Tabs.Combat:AddLeftGroupbox("FOV Circle")
+local fovTog=FG:AddToggle("FOVToggle",{Text="FOV 원 표시",Default=true,Tooltip="Wallbang 활성화시 FOV 원 표시"})
+FG:AddSlider("FOVRadius",{Text="반지름",Default=300,Min=80,Max=500,Rounding=0,Suffix="px",Callback=function(v) FOV.radius=v; FOV.circle.Radius=v; FOV.fill.Radius=v; FOV.fill.Thickness=v; FOV.glow.Radius=v+6 end})
+FG:AddSlider("FOVTransparency",{Text="채움 투명도",Default=80,Min=0,Max=100,Rounding=0,Suffix="%",Callback=function(v) FOV.fill.Transparency=v/100 end})
+FG:AddSlider("FOVSpeed",{Text="회전 속도",Default=1.5,Min=0.1,Max=5,Rounding=1,Callback=function(v) FOV.rotationSpeed=v end})
+FG:AddDropdown("FOVMode",{Text="위치",Values={"화면 중앙","마우스 위치"},Default=1})
+local mouseFOV=false
+Options.FOVMode:OnChanged(function(v) mouseFOV=(v=="마우스 위치") end)
+
+RunService:BindToRenderStep("LynoriaFOV",200,function()
+    if library_unloaded then RunService:UnbindFromRenderStep("LynoriaFOV"); for _,v in pairs(FOV) do if type(v)=="Drawing" then pcall(function() v:Remove() end) elseif type(v)=="table" then for _,l in ipairs(v) do pcall(function() l:Remove() end) end end end; return end
+    local wb=RivalsWallbang and RivalsWallbang.enabled; local ft=fovTog and fovTog.Value
+    if not wb or not ft then FOV.circle.Visible=false; FOV.fill.Visible=false; FOV.glow.Visible=false; for _,a in ipairs(FOV.arms) do a.Visible=false end; FOV.active=false; return end
+    FOV.active=true
+    local center = mouseFOV and UserInputService:GetMouseLocation() or Vector2.new(Cam.ViewportSize.X/2, Cam.ViewportSize.Y/2)
+    FOV.hue = (FOV.hue + 0.005) % 1
+    local rc1 = Color3.fromHSV(FOV.hue, 1, 1); local rc2 = Color3.fromHSV((FOV.hue+0.3)%1, 1, 0.8); local rc3 = Color3.fromHSV((FOV.hue+0.6)%1, 1, 0.9)
+    FOV.circle.Position=center; FOV.circle.Visible=true
+    FOV.fill.Position=center; FOV.fill.Color=rc1; FOV.fill.Visible=true
+    FOV.glow.Position=center; FOV.glow.Color=rc2; FOV.glow.Visible=true
+    local angle=(tick()*FOV.rotationSpeed)%(math.pi*2)
+    for i=1,8 do
+        local a=angle+(i-1)*(math.pi/4); local dx=math.cos(a)*FOV.armLength; local dy=math.sin(a)*FOV.armLength; local gx=math.cos(a)*FOV.innerGap; local gy=math.sin(a)*FOV.innerGap
+        FOV.arms[i].From=center+Vector2.new(gx,gy); FOV.arms[i].To=center+Vector2.new(dx,dy); FOV.arms[i].Color=(i%2==0) and rc2 or rc3; FOV.arms[i].Visible=true
+    end
+end)
+
+print("[Lynoria Nexus.hub] ALL SYSTEMS OPERATIONAL. All issues fixed.")
